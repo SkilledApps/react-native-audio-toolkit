@@ -37,21 +37,8 @@ class Player extends EventEmitter {
 
     this._path = path;
 
-    if (options == null) {
-      this._options = defaultPlayerOptions;
-    } else {
-      // Make sure all required options have values
-      if (options.autoDestroy == null)
-        options.autoDestroy = defaultPlayerOptions.autoDestroy;
-      if (options.continuesToPlayInBackground == null)
-        options.continuesToPlayInBackground = defaultPlayerOptions.continuesToPlayInBackground;
-      if (options.category == null)
-        options.category = defaultPlayerOptions.category;
-      if (options.mixWithOthers == null)
-        options.mixWithOthers = defaultPlayerOptions.mixWithOthers;
-
-      this._options = options;
-    }
+    // merge user options with default
+    this.options = { defaultPlayerOptions, ...options };
 
     this._playerId = playerId++;
     this._reset();
@@ -224,7 +211,22 @@ class Player extends EventEmitter {
 
   destroy(callback = noop) {
     this._reset();
-    RCTAudioPlayer.destroy(this._playerId, callback);
+    const playerId = this._playerId;
+    return new Promise((resolve, reject) => {
+      try {
+        RCTAudioPlayer.destroy(playerId, (error) => {
+          if (error) {
+            reject(error)
+            callback(error);
+          } else {
+            callback(playerId);
+            resolve(playerId);
+          }
+        });
+      } catch (e) {
+        reject(e);
+      }
+    })
   }
 
   seek(position = 0, callback = noop) {

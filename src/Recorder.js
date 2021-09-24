@@ -19,7 +19,12 @@ var RCTAudioRecorder = NativeModules.AudioRecorder;
 var recorderId = 0;
 
 var defaultRecorderOptions = {
-  autoDestroy: true
+  autoDestroy: true,
+  bitrate: 1280000,
+  channels : 2,
+  sampleRate : 44100,
+  quality: 'mdeium',
+  meteringInterval: '250',
 };
 
 /**
@@ -31,7 +36,7 @@ class Recorder extends EventEmitter {
     super();
 
     this._path = path;
-    this._options = options;
+    this._options = { ...defaultRecorderOptions, ...options };
 
     this._recorderId = recorderId++;
     this._reset();
@@ -150,7 +155,20 @@ class Recorder extends EventEmitter {
 
   destroy(callback = noop) {
     this._reset();
-    RCTAudioRecorder.destroy(this._recorderId, callback);
+    const recorderId = this._recorderId;
+    return new Promise((resolve, reject) => {
+      try {
+        RCTAudioRecorder.destroy(recorderId, (error) => {
+          if (error) {
+            reject(error)
+            callback(error)
+          } else {
+            resolve(recorderId);
+            callback(recorderId);
+          }
+        });
+      }
+    })
   }
 
   get state()       { return this._state;                          }
